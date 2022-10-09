@@ -1,0 +1,19 @@
+{
+  "name": "test-vue3-code",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node scripts/dev.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.14.53",
+    "minimist": "^1.2.6",
+    "typescript": "^4.7.4",
+    "vue": "^3.2.37"
+  }
+}
