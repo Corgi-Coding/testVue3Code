@@ -53,23 +53,43 @@ export function effect(fn: any) {
 const targetMap = new WeakMap();
 // 依赖收集方法 这里不能用receiver，不然会死循环
 export function track(target: object, type: any, key: any) {
-    // 没调用effect不会进行收集
-    if (!activeEffect) return;
-    let desMap = targetMap.get(target); // 第一次没有
-    if (!desMap) {
-        targetMap.set(target, (desMap = new Map());
-    }
-    let dep = desMap.get(key);
-    // 如果没用收集过
-    if (!dep) {
-        // 设置一个 set 用来存放该属性 effect 的收集
-        desMap.set(key, (dep = new Set()));
-    }
+  // 没调用effect不会进行收集
+  if (!activeEffect) return;
+  let desMap = targetMap.get(target); // 第一次没有
+  if (!desMap) {
+    targetMap.set(target, (desMap = new Map()));
+  }
+  let dep = desMap.get(key);
+  // 如果没用收集过
+  if (!dep) {
+    // 设置一个 set 用来存放该属性 effect 的收集
+    desMap.set(key, (dep = new Set()));
+  }
 
-    let showTrack = !dep.has(activeEffect); // 去重
-    if (showTrack) {
-        dep.add(activeEffect);
-        // 3.r 如果 effect 被清除应该dep也删除. 在这里做记录，清理的时候好清理  -- flag ? this.name : this.age
-        activeEffect.deps.push(dep);
-    }
+  let showTrack = !dep.has(activeEffect); // 去重
+  if (showTrack) {
+    dep.add(activeEffect);
+    // 3.r 如果 effect 被清除应该dep也删除. 在这里做记录，清理的时候好清理  -- flag ? this.name : this.age
+    activeEffect.deps.push(dep);
+  }
+}
+
+export function trigger(
+  target: object,
+  type: any,
+  key: any,
+  value: any,
+  oldValue: any
+) {
+  const depsMap = targetMap.get(target);
+  // 没有需要触发的 effect 依赖则返回
+  if (!depsMap) return;
+
+  const effects = depsMap.get(key); // 找到了所有需要 effect 的内容
+
+  effects &&
+    effects.forEach((effect: { run: () => void }) => {
+      // 如果 当前effect 自己会影响自己， 需要进行屏蔽
+      if (effect !== activeEffect) effect.run(); // 运行渲染
+    });
 }
