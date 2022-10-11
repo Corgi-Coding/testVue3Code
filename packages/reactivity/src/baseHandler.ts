@@ -1,4 +1,6 @@
+import { isObject } from "@vue/shared";
 import { track, trigger } from "./effect";
+import { reactive } from "./reactive";
 
 export const enum ReactFlags {
   IS_REACTIVE = "__v_isReactive",
@@ -17,7 +19,13 @@ export const mutableHandles = {
     track(target, "get", key);
 
     // Reflect 会把 this 改为代理对象，否则映射的还是原始对象， 也不能用 receiver[key] 会陷入死循环
-    return Reflect.get(target, key, receiver);
+    let res = Reflect.get(target, key, receiver);
+
+    if (isObject(res)) {
+      // 取值就可以代理
+      return reactive(res); // 对象要进行深度代理 性能好 取值就可以代理
+    }
+    return res;
   },
   set(target: object, key: PropertyKey, value: any, receiver: any) {
     // target[key] = value;
@@ -34,4 +42,4 @@ export const mutableHandles = {
 
     return result;
   },
-};
+} as any;
