@@ -23,7 +23,7 @@ class ReactiveEffect {
   public deps = [];
 
   // public 相当于用户传递参数会被赋予 this.fn
-  constructor(public fn: any) {}
+  constructor(public fn: any, public scheduler: any) {}
 
   // 执行 effect
   run() {
@@ -59,10 +59,10 @@ class ReactiveEffect {
   }
 }
 
-export function effect(fn: any) {
-  const _effect = new ReactiveEffect(fn);
+export function effect(fn: any, options: any={}) {
+  const _effect = new ReactiveEffect(fn, options.scheduler);
 
-  _effect.run();
+  _effect.run(); // 默认执行一次
 
   const runner = _effect.run.bind(_effect) as any;
   runner.effect = _effect; 
@@ -113,8 +113,14 @@ export function trigger(
   if (effects) {
     effects = new Set(effects);
   }
-  effects.forEach((effect: { run: () => void }) => {
+  effects.forEach((effect: any) => {
     // 如果 当前effect 自己会影响自己， 需要进行屏蔽
-    if (effect !== activeEffect) effect.run(); // 运行渲染
+    if (effect !== activeEffect) {
+      if (effect.scheduler) {
+        effect.scheduler();
+      } else {
+        effect.run(); // 运行渲染
+      }
+    }
   });
 }
