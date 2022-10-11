@@ -13,15 +13,13 @@
     <script>
         const { effect, reactive } = vueReactivity;
 
-        const timeCount = reactive({ name: 'timeCount', count: 0, flag: true });
+        const timeCount = reactive({ name: 'timeCount', count: 0 });
         effect(() => {
-            console.log('render', timeCount.count);
-            document.getElementById('app').innerHTML = `当前计数：${timeCount.flag ?  timeCount.count + 100 : timeCount.count}`
+            document.getElementById('app').innerHTML = `当前计数：${timeCount.count}`
         });
 
         setTimeout(() => {
-            timeCount.flag = false;
-            timeCount.count = 200;
+            timeCount.count = 10;
         },1000)
     </script>
 </body>

@@ -1,6 +1,17 @@
 // import { ReactiveEffect } from "vue";
 
 export let activeEffect = undefined as any;
+
+function cleanupEffect(effect: any) {
+  // 双向清除
+  const { deps } = effect; // deps 有可能存的是多个属性值的依赖
+  for (let i = 0; i < deps.length; i++) {
+    deps[i].delete(effect);
+  }
+
+  effect.deps.length = 0;
+}
+
 class ReactiveEffect {
   // 在实例上新增 active 属性
   public active = true; // 默认激活状态
@@ -25,6 +36,10 @@ class ReactiveEffect {
       // 记录当前的执行effect parent
       this.parent = activeEffect;
       activeEffect = this;
+
+      // 执行前需要将之前收集的内容清空
+      cleanupEffect(this);
+
       return this.fn();
       // 方便稍后调用取值操作的时候，可以获取倒这个全局的activeEffect --> 2.r
     } catch (error) {
@@ -37,7 +52,10 @@ class ReactiveEffect {
   }
 
   stop() {
-    this.active = false;
+    if (this.active) {
+      this.active = false;
+      cleanupEffect(this); // 停止effect收集
+    }
   }
 }
 
@@ -45,6 +63,10 @@ export function effect(fn: any) {
   const _effect = new ReactiveEffect(fn);
 
   _effect.run();
+
+  const runner = _effect.run.bind(_effect) as any;
+  runner.effect = _effect; 
+  return runner;
 }
 
 // 对象某个属性 --> 多个 effect 渲染
@@ -85,11 +107,14 @@ export function trigger(
   // 没有需要触发的 effect 依赖则返回
   if (!depsMap) return;
 
-  const effects = depsMap.get(key); // 找到了所有需要 effect 的内容
+  let effects = depsMap.get(key); // 找到了所有需要 effect 的内容
 
-  effects &&
-    effects.forEach((effect: { run: () => void }) => {
-      // 如果 当前effect 自己会影响自己， 需要进行屏蔽
-      if (effect !== activeEffect) effect.run(); // 运行渲染
-    });
+  // effects &&
+  if (effects) {
+    effects = new Set(effects);
+  }
+  effects.forEach((effect: { run: () => void }) => {
+    // 如果 当前effect 自己会影响自己， 需要进行屏蔽
+    if (effect !== activeEffect) effect.run(); // 运行渲染
+  });
 }

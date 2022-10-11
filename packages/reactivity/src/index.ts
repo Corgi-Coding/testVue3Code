@@ -1,2 +1,2 @@
-import { effect } from "./effect";
-import { reactive } from "./reactive";
+export { effect } from "./effect";
+export { reactive } from "./reactive";
