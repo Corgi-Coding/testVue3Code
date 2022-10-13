@@ -12,7 +12,7 @@ function cleanupEffect(effect: any) {
   effect.deps.length = 0;
 }
 
-class ReactiveEffect {
+export class ReactiveEffect {
   // 在实例上新增 active 属性
   public active = true; // 默认激活状态
 
@@ -88,6 +88,10 @@ export function track(target: object, type: any, key: any) {
     desMap.set(key, (dep = new Set()));
   }
 
+  trackEffects(dep);
+}
+
+export function trackEffects(dep: any) {
   let showTrack = !dep.has(activeEffect); // 去重
   if (showTrack) {
     dep.add(activeEffect);
@@ -111,8 +115,12 @@ export function trigger(
 
   // effects &&
   if (effects) {
-    effects = new Set(effects);
+    triggerEffects(effects);
   }
+}
+
+export function triggerEffects(effects: any) {
+  effects = new Set(effects);
   effects.forEach((effect: any) => {
     // 如果 当前effect 自己会影响自己， 需要进行屏蔽
     if (effect !== activeEffect) {

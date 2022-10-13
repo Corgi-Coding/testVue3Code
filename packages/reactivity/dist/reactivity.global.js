@@ -21,6 +21,7 @@ var vueReactivity = (() => {
   // packages/reactivity/src/index.ts
   var src_exports = {};
   __export(src_exports, {
+    computed: () => computed,
     effect: () => effect,
     reactive: () => reactive
   });
@@ -83,6 +84,9 @@ var vueReactivity = (() => {
     if (!dep) {
       desMap.set(key, dep = /* @__PURE__ */ new Set());
     }
+    trackEffects(dep);
+  }
+  function trackEffects(dep) {
     let showTrack = !dep.has(activeEffect);
     if (showTrack) {
       dep.add(activeEffect);
@@ -95,8 +99,11 @@ var vueReactivity = (() => {
       return;
     let effects = depsMap.get(key);
     if (effects) {
-      effects = new Set(effects);
+      triggerEffects(effects);
     }
+  }
+  function triggerEffects(effects) {
+    effects = new Set(effects);
     effects.forEach((effect2) => {
       if (effect2 !== activeEffect) {
         if (effect2.scheduler) {
@@ -122,6 +129,7 @@ var vueReactivity = (() => {
   var EMPTY_OBJ = true ? Object.freeze({}) : {};
   var EMPTY_ARR = true ? Object.freeze([]) : [];
   var isArray = Array.isArray;
+  var isFunction = (val) => typeof val === "function";
   var isObject = (val) => val !== null && typeof val === "object";
   var cacheStringFunction = (fn) => {
     const cache = /* @__PURE__ */ Object.create(null);
@@ -179,5 +187,48 @@ var vueReactivity = (() => {
     reactiveMap.set(target, proxy);
     return proxy;
   }
+
+  // packages/reactivity/src/computed.ts
+  var ComputedRefImpl = class {
+    constructor(getter, setter) {
+      this.setter = setter;
+      this._dirty = true;
+      this.__v_isReadonly = true;
+      this.__v_isRef = true;
+      this.dep = /* @__PURE__ */ new Set();
+      this.effect = new ReactiveEffect(getter, () => {
+        if (!this._dirty) {
+          this._dirty = true;
+          trackEffects(this.dep);
+        }
+      });
+    }
+    get value() {
+      trackEffects(this.dep);
+      if (this._dirty) {
+        this._dirty = false;
+        this._value = this.effect.run();
+      }
+      return this._value;
+    }
+    set value(newValue) {
+      this.setter(newValue);
+    }
+  };
+  var computed = (getterOrOptions) => {
+    let onlyGetter = isFunction(getterOrOptions);
+    let getter;
+    let setter;
+    if (onlyGetter) {
+      getter = onlyGetter;
+      setter = () => {
+        console.warn("no set");
+      };
+    } else {
+      getter = getterOrOptions.get;
+      setter = getterOrOptions.set;
+    }
+    return new ComputedRefImpl(getter, setter);
+  };
   return __toCommonJS(src_exports);
 })();
